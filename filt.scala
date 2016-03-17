@@ -7,8 +7,8 @@ object filt {
       def sort(l: List[Int], tot: List[Int]): List[Int] = {
         if (l.isEmpty) tot
         else {
-          if (l.last <= 45 && (l.last % 7) == 0) sort(l.init,l.last::tot)
-          else sort(l.init, tot)
+          if (l.head <= 45 && (l.head % 7) == 0) sort(l.tail,tot:::l.head::Nil)
+          else sort(l.tail, tot)
         }
       }
       sort(ls, List())
