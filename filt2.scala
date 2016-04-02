@@ -9,14 +9,9 @@ object filt2 {
     }
 
     def filt(ls: List[Int], fn: Int => Boolean): List[Int] = {
-      def sort(l: List[Int], tot: List[Int]): List[Int] = {
-        if (l.isEmpty) tot
-        else {
-          if (fn(l.head)) sort(l.tail,tot:::l.head::Nil)
-          else sort(l.tail, tot)
-        }
-      }
-      sort(ls, List())
+      if (ls.isEmpty) List()
+      else if (fn(ls.head)) ls.head::filt(ls.tail, fn)
+      else filt(ls.tail, fn)
     }
 
     filt(List(7, 9, 0, 4, 21, 290), fn1)
