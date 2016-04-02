@@ -4,16 +4,10 @@
 object filt {
   def main(args: Array[String]) {
     def srt(ls: List[Int]): List[Int] = {
-      def sort(l: List[Int], tot: List[Int]): List[Int] = {
-        if (l.isEmpty) tot
-        else {
-          if (l.head <= 45 && (l.head % 7) == 0) sort(l.tail,tot:::l.head::Nil)
-          else sort(l.tail, tot)
-        }
-      }
-      sort(ls, List())
+      if (ls.isEmpty) List()
+      else if (ls.head <= 45 && (ls.head % 7) == 0) ls.head::srt(ls.tail)
+      else srt(ls.tail)
     }
-    srt(List(7, 9, 0, 4, 21))
   }
 
 }
