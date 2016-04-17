@@ -83,7 +83,7 @@ object MyWord {
         val last : Int = over % (ls.length - 1)
 
         def casFit (lsts: List[String]): List[ParagraphElement] = {
-          if (lsts.tail.length == 2) (new Word(lsts.head)::new Space(last) :: new Word(lsts.tail.head):: Nil)
+          if (lsts.tail.length == 2) (new Word(lsts.head)::new Space(last+sp) :: new Word(lsts.tail.head):: Nil)
           else (new Word(lsts.head)::new Space(sp):: casFit(lsts.tail))
         }
 
