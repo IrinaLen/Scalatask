@@ -118,11 +118,11 @@ class Empty extends TweetSet {
 
   def isEmpty: Boolean = true
 
-  def filterAcc(p: Tweet => Boolean, acc: TweetSet): TweetSet = throw new java.util.NoSuchElementException("Is Empty Set")
+  def filterAcc(p: Tweet => Boolean, acc: TweetSet): TweetSet = acc
 
   def union(that: TweetSet): TweetSet = that
 
-  def descendingByRetweet: TweetList = throw new java.util.NoSuchElementException("Is Empty Set")
+  def descendingByRetweet: TweetList = Nil
 
   def mostRetweeted: Tweet = throw new java.util.NoSuchElementException("Is Empty Set")
 
@@ -144,8 +144,8 @@ class NonEmpty(elem: Tweet, left: TweetSet, right: TweetSet) extends TweetSet {
   def isEmpty: Boolean = false
 
   def filterAcc(p: Tweet => Boolean, acc: TweetSet): TweetSet = {
-    if (p(elem)) filterAcc(p, acc.incl(elem))
-    else filterAcc(p,acc)
+    if (p(elem)) left.filterAcc(p, right.filterAcc(p, acc.incl(elem)))
+    else left.filterAcc(p,right.filterAcc(p, acc))
   }
 
   def union(that: TweetSet): TweetSet = {
@@ -225,21 +225,7 @@ class Cons(val head: Tweet, val tail: TweetList) extends TweetList {
 }
 
 
-object GoogleVsApple {
-  val google = List("android", "Android", "galaxy", "Galaxy", "nexus", "Nexus")
-  val apple = List("ios", "iOS", "iphone", "iPhone", "ipad", "iPad")
-
-    lazy val googleTweets: TweetSet = ???
-  lazy val appleTweets: TweetSet = ???
-  
-  /**
-   * A list of all tweets mentioning a keyword from either apple or google,
-   * sorted by the number of retweets.
-   */
-     lazy val trending: TweetList = ???
-  }
 
 object Main extends App {
-  // Print the trending tweets
-  GoogleVsApple.trending foreach println
+  //tweets.trending(List("politics", "it", "hobby")) foreach println
 }
