@@ -8,7 +8,7 @@ import scodec.codecs._
 import java.nio.file.{Files, Paths}
 import java.io._
 
-import scodec.bits.ByteOrdering.{BigEndian, LittleEndian}
+import scodec.bits.ByteOrdering.{LittleEndian}
 import scala.collection.mutable.ArrayBuffer
 
 import swing.{Panel, MainFrame, SimpleSwingApplication}
@@ -43,8 +43,10 @@ class DataPanel(data: Array[Array[Color]], BG: String) extends Panel {
 }
 
 object render extends SimpleSwingApplication {
-  val decodedpict = new Decoder("bigtestgif.gif");
 
+  val decodedpict = new Decoder("animgif.gif");
+
+ // if (decodedpict.body.ImList.length == 1)
 
   val width = decodedpict.HeadOfGIF.sizes.width
   val height = decodedpict.HeadOfGIF.sizes.height
@@ -55,17 +57,30 @@ object render extends SimpleSwingApplication {
     for {
       x <- 0 until data.length
       y <- 0 until data(x).length}{
-      data(x)(y) = Color.decode(el.decoded(x)(y))
+      if (x < el.imp.left || y < el.imp.top) data(x)(y) = new Color(0,0,0,0);
+      else data(x + el.imp.left)(y + el.imp.top) = Color.decode(el.decoded(x)(y))
     }
 
+  val width2 = decodedpict.HeadOfGIF.sizes.width
+  val height2 = decodedpict.HeadOfGIF.sizes.height
+  val scale2 = 10
+  val data2 = Array.ofDim[Color](width, height)
 
+  val el2 = decodedpict.body.ImList.tail.head
+  for {
+    x <- 0 until data2.length
+    y <- 0 until data2(x).length}{
+    if (x < el2.imp.left || y < el2.imp.top) data2(x)(y) = new Color(0,0,0,0);
+    else data2(x + el.imp.left)(y + el2.imp.top) = Color.decode(el2.decoded(x)(y))
+  }
 
   def top = new MainFrame {
-    contents = new DataPanel(data,decodedpict.HeadOfGIF.BG) {
-      preferredSize = new Dimension(width * scale, height * scale)
+    contents = new DataPanel(data2, decodedpict.HeadOfGIF.BG) {
+      preferredSize = new Dimension(width2 * scale2, height2 * scale2)
     }
   }
 }
+
 
 
 
@@ -83,7 +98,7 @@ case class Images(imp: ImageParamet, lzwstart: Int, v: BitVector, palitraParam: 
   private var library = ArrayBuffer[List[Int]]()
   for (i<- 0 until maxnum){
     library += i.toInt :: Nil
-    println(i.toString + library(i))
+  //  println(i.toString + library(i))
   }
   private def reversing (vect: BitVector, total: BitVector): BitVector = {
     if (vect.isEmpty) total
@@ -91,29 +106,30 @@ case class Images(imp: ImageParamet, lzwstart: Int, v: BitVector, palitraParam: 
   }
 
   private def lzwdecode (start: BitVector, tot: ArrayBuffer[List[Int]], s: Int, lastnum: Int): ArrayBuffer[List[Int]] = {
-      println(start.take(s).reverseBitOrder.toInt(false, LittleEndian))
-    if (start.take(s).reverseBitOrder.toInt(false, LittleEndian) == maxnum - 2) {
-      println(start.drop(s).take(lzwstart))
+    //  println(start.take(s).reverseBitOrder.toInt(false, LittleEndian))
+    if (start.take(s).reverseBitOrder.toInt(false, LittleEndian) != maxnum - 2 && tot.isEmpty) lzwdecode(start.drop(lzwstart), tot, lzwstart, 0)
+    else if (start.take(s).reverseBitOrder.toInt(false, LittleEndian) == maxnum - 2 ) {
+     // println(start.drop(s).take(lzwstart))
       library = library.take(maxnum)
-      lzwdecode(start.drop(s + lzwstart), tot += (start.drop(s).take(lzwstart).reverseBitOrder.toInt(false,LittleEndian)::Nil),lzwstart, lastnum + 1)
+      lzwdecode(start.drop(s + lzwstart), tot += (start.drop(s).take(lzwstart).reverseBitOrder.toInt(false,LittleEndian)::Nil),lzwstart, 0)
     }
 
     else  if (start.take(s).reverseBitOrder.toInt(false,LittleEndian) == maxnum - 1 || start.isEmpty) tot
     else{
-      print (start.take(s).toBin)
+    //  print (start.take(s).toBin)
       val n = start.take(s).reverseBitOrder.toInt(false, LittleEndian)
-      print(" " + n + " ")
+    //  print(" " + n + " ")
       if (library.length > n) {
         val x1 = library(n).head
         library += tot(lastnum):::(x1::Nil)
-        println(library(n) + " + " + (lastnum + maxnum).toString + library(lastnum + maxnum))
+      //  println(library(n) + " + " + (lastnum + maxnum).toString + library(lastnum + maxnum))
         if (library.length < math.pow(2, s)) lzwdecode(start.drop(s), tot += library(n), s, lastnum+1)
         else lzwdecode(start.drop(s), tot += library(n), s + 1, lastnum + 1)
       }
       else{
         val x1 = tot(lastnum).head
         library += tot(lastnum):::(x1::Nil)
-        println(library(n))
+     //   println(library(n))
         if (library.length < math.pow(2, s)) lzwdecode(start.drop(s), tot += library(n), s, lastnum+1)
         else lzwdecode(start.drop(s), tot += library(n), s + 1, lastnum + 1)
       }
@@ -126,13 +142,13 @@ case class Images(imp: ImageParamet, lzwstart: Int, v: BitVector, palitraParam: 
       for {i<- 0 until len}{
         if (i == palitra.length) ar(i) = "clear"
         else ar(i) = "#" + palitra(ls(i)).toHex
-        print(ar(i) + " ")
+      //  print(ar(i) + " ")
       }
       ar
     }
 
     def forall (Ls: List[Int], t: ArrayBuffer[Array[String]]): ArrayBuffer[Array[String]] = {
-      print("\n")
+     // print("\n")
       if (Ls.isEmpty) t
       else forall(Ls.drop(len), t += newstring(Ls))
     }
@@ -141,7 +157,7 @@ case class Images(imp: ImageParamet, lzwstart: Int, v: BitVector, palitraParam: 
 
   private val revbits = reversing(v, v.take(0))
   private val predecodedimage = lzwdecode(revbits, ArrayBuffer(), lzwstart, -1).toList.flatten
-println(predecodedimage)
+//println(predecodedimage)
   val decoded = tocolorarray(predecodedimage, imp.pW)
 
 }
@@ -157,21 +173,21 @@ class Decoder(path : String) {
     try {
       val headerCodec = (constant(hex"474946383961".bits) :: uint16L :: uint16L).as[GIFSizes] //GIF89a
       val decoded = headerCodec.decode(bitVector)
-      println(decoded.require.value)
+     // println(decoded.require.value)
       return decoded.require.value
     }
     catch {
       case e: IllegalArgumentException => {
         val headerCodec = (constant(hex"474946383761".bits) :: uint16L :: uint16L).as[GIFSizes] //GIF87a
         val decoded = headerCodec.decode(bitVector)
-        println(decoded.require.value)
+      //  println(decoded.require.value)
         return decoded.require.value
       }
     }
   }
 
   private def pal(pa: BitVector): PalitraParametrs = {
- println(pa)
+// println(pa)
     val d = pa.drop(1).take(3).toInt(false,LittleEndian)
     val s = pa.drop(4).take(4).toInt(false,LittleEndian)
     val par = PalitraParametrs(d + 1, (math.pow(2, s + 1).toInt))
@@ -183,7 +199,7 @@ class Decoder(path : String) {
     var col= c
     for{i<- 0 until p.size }{
       ColAr(i) = col.take(3 * 8)
-      println(ColAr(i).toHex)
+    //  println(ColAr(i).toHex)
       col = col.drop(3 * 8)
     }
     return ColAr
@@ -214,7 +230,7 @@ class Decoder(path : String) {
 
   private def split(vec: BitVector): BitVector = {
     def cicle (vect: BitVector, lzwim: BitVector): BitVector = {
-      println(vect.take(300))
+    //  println(vect.take(300))
       val s = vect.take(8).toInt(false, LittleEndian)
       println(s)
       if (s == 0) lzwim
@@ -237,27 +253,25 @@ class Decoder(path : String) {
 
     if (hex"3b".bits == v.take(8)) GifBody(GraphContrList, TextList, ImList)
     else if (hex"2c".bits == v.take(8)) {
-      println("image " + v.take(100))
+     // println("image " + v.take(100))
       var vec = v.drop(8)
       val par = (uint16L :: uint16L :: uint16L :: uint16L).as[ImageParamet]
       val decoded = par.decode(vec)
-      println(decoded.require.value)
+    //  println(decoded.require.value)
       vec = vec.drop(16 * 4)
       if (vec.take(1) == true) {
         val loc = pal(vec.take(8))
-        println(loc)
+     //   println(loc)
         val pict = Images(decoded.require.value, vec.drop(8 + 8 * 3 * loc.size).take(8).toInt(false,LittleEndian) + 1,split(vec.drop(8 + 8 * 3 * loc.size)),loc,colors(vec.drop(8), loc))
-        println(pict)
-        println("Image " + vec.take(100))
+      //  println(pict)
+     //   println("Image " + vec.take(100))
         if (pict.v.length % (254 * 8) == 0) bodydecode(gifH, vec.drop(16+8 + 8 * 3 * loc.size + pict.v.length + 8 * (pict.v.length / (8 * 254))), GraphContrList, TextList, pict :: ImList)
         else bodydecode(gifH,vec.drop(16+8 + 8 * 3 * loc.size + pict.v.length + 8 * (pict.v.length / (8 * 254)) + 8), GraphContrList, TextList, pict :: ImList)
 
       }
       else{
         val pict = Images(decoded.require.value, vec.drop(8).take(8).toInt(false,LittleEndian) + 1,split(vec.drop(8)),gifH.palitrpar, gifH.GlobalPalitra)
-        println(pict)
-        println("Image " + (16+8 + pict.v.length + 8 * (pict.v.length.toInt / (8 * 254)) + 8) + " " + (pict.v.length) + " " + (pict.v.length.toInt / (8 * 254)) + vec.drop(16+8 + pict.v.length + 8 * (pict.v.length.toInt / 255) + 8).take(100))
-
+     //   println(pict)
         if (pict.v.length % (254 * 8) == 0) bodydecode(gifH, vec.drop(16+8 + pict.v.length + 8 * (pict.v.length.toInt / (8 * 254))), GraphContrList, TextList,  pict :: ImList)
         else bodydecode(gifH,vec.drop(16+8 + pict.v.length + 8 * (pict.v.length.toInt / (8 * 254)) + 8), GraphContrList, TextList, pict :: ImList)
       }
@@ -265,7 +279,7 @@ class Decoder(path : String) {
     else{
 
       if (hex"f9".bits == v.drop(8).take(8) ){  //Graphic Control Extension Block
-        println("graphic " + v.take(100))
+       // println("graphic " + v.take(100))
         val vec = v.drop(16 + 8 + 3)
         val grap = (uintL(3):: uintL(2):: uint16L :: uint8L).as[GraphicControl]
         val decoded = grap.decode(vec)
@@ -273,16 +287,16 @@ class Decoder(path : String) {
         bodydecode(gifH, vec.drop(3 + 2 + 16 + 8 + 8),decoded.require.value::GraphContrList,TextList,ImList)
       }
       else if (hex"fe".bits == v.drop(8).take(8)) {  //Comment Extension Block
-        println("comment " + v.take(100))
+      //  println("comment " + v.take(100))
         val d = dr(v.drop(8+8))
         bodydecode(gifH, v.drop(d + 16 + 8),GraphContrList,TextList,ImList)
       }
       else if(hex"01".bits == v.drop(8).take(8)){  //Plain Text Extension Block
-        println("text " + v.take(100))
+       // println("text " + v.take(100))
         val vec = v.drop(16 + 8)
         val param = (uint16L::uint16L::uint16L::uint16L::uint8L::uint8L::uint8L::uint8L).as[TextPar]
         val decoded = param.decode(vec)
-        println(decoded.require.value)
+      //  println(decoded.require.value)
         val text = split(vec.drop(12 * 8))
         val bytetext = text.toByteArray
         val t = new Array[Char](bytetext.length)
@@ -294,7 +308,7 @@ class Decoder(path : String) {
         else  bodydecode(gifH, vec.drop(12 * 8 + text.length + 8 * (text.length / (8 * 254)) + 8),GraphContrList,txt::TextList,ImList)
       }
       else{ //Application Extension Block
-        println("application " + v.take(100))
+       // println("application " + v.take(100))
         bodydecode(gifH, v.drop(19 * 8),GraphContrList,TextList,ImList)
       }
 
@@ -309,21 +323,21 @@ class Decoder(path : String) {
 println(bitVector.take(8).reverseBitOrder.toBin)
   println(split(bitVector.drop(35 * 8)).take(300))*/
   val HeadOfGIF = headsplit(bitVector)
-  println(HeadOfGIF)
+ // println(HeadOfGIF)
 
   bitVector = bitVector.drop(13 * 8 + HeadOfGIF.palitrpar.size * 8 * 3)
-  println(bitVector.take(100))
+ // println(bitVector.take(100))
 
   val body = bodydecode(HeadOfGIF,bitVector, Nil, Nil, Nil)
-  println(body)
-  println(body.ImList.head.decoded)
+ // println(body)
+ // println(body.ImList.head.decoded)
 
 }
 
 
 object test {
   def main(args: Array[String]) {
-    val decodedpict = new Decoder("animgif.gif");
+    val decodedpict = new Decoder("bigtestgif.gif");
 
   }
 }
