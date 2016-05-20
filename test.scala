@@ -16,6 +16,19 @@ import java.awt.{Color, Graphics2D, Dimension}
 import java.awt.image.BufferedImage
 
 
+
+object Timer {
+  def apply(interval: Int, repeats: Boolean = true)(op: => Unit) {
+    val timeOut = new javax.swing.AbstractAction() {
+      def actionPerformed(e : java.awt.event.ActionEvent) = op
+    }
+    val t = new javax.swing.Timer(interval, timeOut)
+    t.setRepeats(repeats)
+    t.start()
+  }
+}
+
+
 class DataPanel(data: Array[Array[Color]], BG: String) extends Panel {
 
   override def paintComponent(g: Graphics2D) {
@@ -46,39 +59,38 @@ object render extends SimpleSwingApplication {
 
   val decodedpict = new Decoder("animgif.gif");
 
- // if (decodedpict.body.ImList.length == 1)
-
   val width = decodedpict.HeadOfGIF.sizes.width
   val height = decodedpict.HeadOfGIF.sizes.height
   val scale = 10
-  val data = Array.ofDim[Color](width, height)
-
-  val el = decodedpict.body.ImList.head
-    for {
-      x <- 0 until data.length
-      y <- 0 until data(x).length}{
-      if (x < el.imp.left || y < el.imp.top) data(x)(y) = new Color(0,0,0,0);
-      else data(x + el.imp.left)(y + el.imp.top) = Color.decode(el.decoded(x)(y))
-    }
-
-  val width2 = decodedpict.HeadOfGIF.sizes.width
-  val height2 = decodedpict.HeadOfGIF.sizes.height
-  val scale2 = 10
-  val data2 = Array.ofDim[Color](width, height)
-
-  val el2 = decodedpict.body.ImList.tail.head
-  for {
-    x <- 0 until data2.length
-    y <- 0 until data2(x).length}{
-    if (x < el2.imp.left || y < el2.imp.top) data2(x)(y) = new Color(0,0,0,0);
-    else data2(x + el.imp.left)(y + el2.imp.top) = Color.decode(el2.decoded(x)(y))
-  }
-
+  val el = decodedpict.body.ImList.toArray
+  var time = decodedpict.body.GraphContrList.toArray
+  if (time.isEmpty) time = time:+(GraphicControl(0,0,1000,0))
   def top = new MainFrame {
-    contents = new DataPanel(data2, decodedpict.HeadOfGIF.BG) {
-      preferredSize = new Dimension(width2 * scale2, height2 * scale2)
-    }
-  }
+
+    var i = 0
+   Timer(time(i).delay) {
+     if (i == el.length) i = 0
+     tick(i)
+     i = i + 1
+   }
+
+   def tick(i: Int) ={
+     val data = Array.ofDim[Color](width, height)
+
+     for {
+       x <- 0 until data.length
+       y <- 0 until data(x).length} {
+
+       if (x < el(i).imp.left || y < el(i).imp.top) data(x)(y) = new Color(0,0,0,0);
+       else data(x + el(i).imp.left)(y + el(i).imp.top) = Color.decode(el(i).decoded(y)(x))
+     }
+     { contents = new DataPanel(data, decodedpict.HeadOfGIF.BG) {
+       preferredSize = new Dimension(width * scale, height * scale)}
+     }
+
+   }
+
+ }
 }
 
 
@@ -337,7 +349,10 @@ println(bitVector.take(8).reverseBitOrder.toBin)
 
 object test {
   def main(args: Array[String]) {
-    val decodedpict = new Decoder("bigtestgif.gif");
-
+    //val decodedpict = new Decoder("bigtestgif.gif");
+    for (i <- 1 to 5) {
+      println("I'm acting!")
+      Thread.sleep(1000)
+    }
   }
 }
